@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      sdk_ref:
+        description: accessai-android-sdk branch/tag to build against when using includeBuild
+        default: main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.console=plain
+  ANDROID_PLATFORM: platforms;android-35
+  ANDROID_BUILD_TOOLS: build-tools;35.0.0
+
+jobs:
+  android:
+    name: Android app build, tests, lint and APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Android project
+        id: detect
+        run: |
+          if [ -f gradlew ]; then echo "present=true" >> "$GITHUB_OUTPUT"
+          else echo "present=false" >> "$GITHUB_OUTPUT"; echo "::notice::No gradlew at the repo root yet; skipping the Android build."; fi
+          if grep -qs 'includeBuild("../accessai-android-sdk")' settings.gradle.kts; then echo "local_sdk=true" >> "$GITHUB_OUTPUT"; fi
+
+      # When settings.gradle.kts uses includeBuild("../accessai-android-sdk"), build against SDK sources.
+      - name: Check out SDK next to the app
+        if: steps.detect.outputs.local_sdk == 'true'
+        run: git clone --depth 1 --branch "${{ github.event.inputs.sdk_ref || 'main' }}" https://github.com/Caculuz-cinks/accessai-android-sdk.git ../accessai-android-sdk
+
+      - uses: actions/setup-java@v4
+        if: steps.detect.outputs.present == 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        if: steps.detect.outputs.present == 'true'
+        with:
+          packages: ${{ env.ANDROID_PLATFORM }} ${{ env.ANDROID_BUILD_TOOLS }} platform-tools
+
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.detect.outputs.present == 'true'
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Build debug APK
+        if: steps.detect.outputs.present == 'true'
+        run: ./gradlew assembleDebug --continue
+
+      - name: Unit tests
+        if: steps.detect.outputs.present == 'true'
+        run: ./gradlew testDebugUnitTest --continue
+
+      - name: Android lint
+        if: steps.detect.outputs.present == 'true'
+        run: ./gradlew lintDebug --continue
+
+      - name: Report test results
+        if: always() && steps.detect.outputs.present == 'true'
+        uses: mikepenz/action-junit-report@v4
+        with:
+          check_name: App test results
+          report_paths: '**/build/test-results/**/*.xml'
+          detailed_summary: true
+          include_passed: false
+
+      - name: Upload debug APK
+        if: success() && steps.detect.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: accesspay-debug-apk
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error
+
+      - name: Upload lint and test reports
+        if: always() && steps.detect.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-reports
+          path: |
+            **/build/reports/lint-results-*.html
+            **/build/reports/tests/
+          if-no-files-found: ignore
+
+  mock-bank:
+    name: Mock bank tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect mock bank
+        id: detect
+        run: |
+          if [ -f mock-bank/pyproject.toml ] || [ -f mock-bank/requirements.txt ]; then echo "present=true" >> "$GITHUB_OUTPUT"
+          else echo "present=false" >> "$GITHUB_OUTPUT"; echo "::notice::No mock-bank/ Python project yet."; fi
+
+      - uses: actions/setup-python@v5
+        if: steps.detect.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install and test
+        if: steps.detect.outputs.present == 'true'
+        working-directory: mock-bank
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f pyproject.toml ]; then pip install -e ".[dev]" || pip install -e .; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest
+          pytest -q

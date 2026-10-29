@@ -1,0 +1,16 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+*.apk
+*.keystore
+__pycache__/
+.venv/
+.env
+*.db
+*.sqlite3
+.pytest_cache/
+.DS_Store
