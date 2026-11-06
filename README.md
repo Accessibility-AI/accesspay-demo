@@ -7,7 +7,7 @@ A demonstration Nigerian fintech Android app that integrates the
 | Repo | What |
 |---|---|
 | [accessai-android-sdk](https://github.com/Accessibility-AI/accessai-android-sdk) | Android SDK (built) |
-| [accessai-server](https://github.com/Accessibility-AI/accessai-server) | AI service |
+| [accessai-server-gemini](https://github.com/Accessibility-AI/accessai-server-gemini) | AI service (Gemini) |
 | **accesspay-demo** (this) | Demo app + mock bank |
 
 ## What to build
