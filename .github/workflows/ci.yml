@@ -40,7 +40,7 @@ jobs:
       # When settings.gradle.kts uses includeBuild("../accessai-android-sdk"), build against SDK sources.
       - name: Check out SDK next to the app
         if: steps.detect.outputs.local_sdk == 'true'
-        run: git clone --depth 1 --branch "${{ github.event.inputs.sdk_ref || 'main' }}" https://github.com/Caculuz-cinks/accessai-android-sdk.git ../accessai-android-sdk
+        run: git clone --depth 1 --branch "${{ github.event.inputs.sdk_ref || 'main' }}" https://github.com/Accessibility-AI/accessai-android-sdk.git ../accessai-android-sdk
 
       - uses: actions/setup-java@v4
         if: steps.detect.outputs.present == 'true'

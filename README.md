@@ -1,13 +1,13 @@
 # AccessPay (demo)
 
 A demonstration Nigerian fintech Android app that integrates the
-[AccessAI Android SDK](https://github.com/Caculuz-cinks/accessai-android-sdk), plus a mock bank backend.
+[AccessAI Android SDK](https://github.com/Accessibility-AI/accessai-android-sdk), plus a mock bank backend.
 **Simulated funds only. No real money, bank accounts, PINs or OTPs.**
 
 | Repo | What |
 |---|---|
-| [accessai-android-sdk](https://github.com/Caculuz-cinks/accessai-android-sdk) | Android SDK (built) |
-| [accessai-server](https://github.com/Caculuz-cinks/accessai-server) | AI service |
+| [accessai-android-sdk](https://github.com/Accessibility-AI/accessai-android-sdk) | Android SDK (built) |
+| [accessai-server](https://github.com/Accessibility-AI/accessai-server) | AI service |
 | **accesspay-demo** (this) | Demo app + mock bank |
 
 ## What to build
@@ -26,19 +26,19 @@ David Okafor (…7710), Amaka Obi (…5521).
 
 `POST /v1/transfers` receives `beneficiary_id`, `amount_minor`, the AccessAI `confirmation_token` and an
 `Idempotency-Key`. Before moving simulated money it must verify the token as described in the SDK's
-[API contract](https://github.com/Caculuz-cinks/accessai-android-sdk/blob/main/docs/API_CONTRACT.md#get-well-knownjwksjson):
+[API contract](https://github.com/Accessibility-AI/accessai-android-sdk/blob/main/docs/API_CONTRACT.md#get-well-knownjwksjson):
 signature (JWKS), expiry, action id, the canonical params hash, and that the nonce was never used before. Reject
 `dev-unsigned.` tokens unless running in explicit local dev mode. Add a fault-injection flag so failures and timeouts can
 be demoed.
 
 ### Integrating the SDK
 
-Follow [docs/INTEGRATION.md](https://github.com/Caculuz-cinks/accessai-android-sdk/blob/main/docs/INTEGRATION.md).
+Follow [docs/INTEGRATION.md](https://github.com/Accessibility-AI/accessai-android-sdk/blob/main/docs/INTEGRATION.md).
 The SDK repo's `sample/` app is a minimal working integration to copy from. Register at least `get_balance`,
 `navigate_to_transfer`, `transfer_money` and `get_transaction_history`, and add `AccessAIScreen(...)` to each screen.
 
 ```kotlin
-implementation("com.github.Caculuz-cinks.accessai-android-sdk:accessai-compose:0.1.0")  // via JitPack
+implementation("com.github.Accessibility-AI.accessai-android-sdk:accessai-compose:0.2.0")  // via JitPack
 ```
 
 To build against SDK sources instead, add `includeBuild("../accessai-android-sdk")` to `settings.gradle.kts` with both
