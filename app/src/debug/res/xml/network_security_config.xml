@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: plain HTTP to the mock bank on the emulator host, over adb reverse, or on the local Wi-Fi. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
