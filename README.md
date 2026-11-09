@@ -82,7 +82,7 @@ Admin endpoints are disabled with `ADMIN_ENABLED=false`.
 ## How the app uses the SDK
 
 Following [docs/INTEGRATION.md](https://github.com/Accessibility-AI/accessai-android-sdk/blob/main/docs/INTEGRATION.md),
-with `accessai-compose:0.2.0` from JitPack:
+with `accessai-compose:0.2.1` from JitPack:
 
 - `AccessPayApp` initialises AccessAI and registers `get_balance`, `navigate_to_transfer`, `get_transaction_history` and
   `transfer_money` (`app/src/main/kotlin/com/accesspay/demo/ai/AccessPayActions.kt`).
