@@ -12,7 +12,7 @@ coreKtx = "1.15.0"
 junit4 = "4.13.2"
 
 [libraries]
-accessai-compose = { module = "com.github.Caculuz-cinks.accessai-android-sdk:accessai-compose", version.ref = "accessai" }
+accessai-compose = { module = "com.github.Accessibility-AI.accessai-android-sdk:accessai-compose", version.ref = "accessai" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }

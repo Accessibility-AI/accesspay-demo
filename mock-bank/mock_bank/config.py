@@ -11,7 +11,7 @@ def _flag(name: str, default: bool) -> bool:
 @dataclass
 class Settings:
     db_path: str = field(default_factory=lambda: os.getenv("MOCK_BANK_DB", "mock_bank.db"))
-    jwks_url: str = field(default_factory=lambda: os.getenv("ACCESSAI_JWKS_URL", "http://localhost:8080/.well-known/jwks.json"))
+    jwks_url: str = field(default_factory=lambda: os.getenv("ACCESSAI_JWKS_URL", "https://accessai-server-gemini.fly.dev/.well-known/jwks.json"))
     # The SDK's offline backend mints "dev-unsigned." tokens. Accepting them is local development only.
     allow_dev_tokens: bool = field(default_factory=lambda: _flag("ALLOW_DEV_TOKENS", False))
     # Transfers made from the app's own Transfer screen (not AccessAI) carry no confirmation token.
