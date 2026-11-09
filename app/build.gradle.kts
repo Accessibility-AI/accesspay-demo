@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // SDK 0.2.0 resolves androidx.fragment 1.2.5 via biometric, whose FragmentActivity crashes the
+    // microphone permission request ("Can only use lower 16 bits for requestCode"). Fixed in the SDK after 0.2.0.
+    implementation(libs.androidx.fragment)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
