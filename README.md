@@ -29,37 +29,27 @@ cd mock-bank && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```
 
 ```bash
-cd mock-bank && ALLOW_DEV_TOKENS=true .venv/bin/uvicorn mock_bank.app:app --port 8000
+cd mock-bank && .venv/bin/uvicorn mock_bank.app:app --host 0.0.0.0 --port 8000
 ```
-`POST /v1/transfers` receives `beneficiary_id`, `amount_minor`, the AccessAI `confirmation_token` and an
-`Idempotency-Key`. Before moving simulated money it must verify the token as described in the SDK's
-[API contract](https://github.com/Accessibility-AI/accessai-android-sdk/blob/main/docs/API_CONTRACT.md#get-well-knownjwksjson):
-signature (JWKS), expiry, action id, the canonical params hash, and that the nonce was never used before. Reject
-`dev-unsigned.` tokens unless running in explicit local dev mode. Add a fault-injection flag so failures and timeouts can
-be demoed.
 
-`ALLOW_DEV_TOKENS=true` is only for running without the AccessAI service (step 2, offline). With the real service, leave
-it off and set `ACCESSAI_JWKS_URL` to the service's `/.well-known/jwks.json`. See `mock-bank/.env.example`.
+By default the bank verifies confirmation tokens against the live AccessAI service,
+`https://accessai-server-gemini.fly.dev/.well-known/jwks.json` (override with `ACCESSAI_JWKS_URL`).
+`ALLOW_DEV_TOKENS=true` is only for building the app with an empty `accessaiUrl` (the SDK's offline mode, unsigned
+tokens). See `mock-bank/.env.example`.
 
 **2. Android app** (JDK 17, Android SDK 35; emulator or device with a screen lock set, since transfers need it):
 
 ```bash
 ./gradlew installDebug
-Follow [docs/INTEGRATION.md](https://github.com/Accessibility-AI/accessai-android-sdk/blob/main/docs/INTEGRATION.md).
-The SDK repo's `sample/` app is a minimal working integration to copy from. Register at least `get_balance`,
-`navigate_to_transfer`, `transfer_money` and `get_transaction_history`, and add `AccessAIScreen(...)` to each screen.
-
-```kotlin
-implementation("com.github.Accessibility-AI.accessai-android-sdk:accessai-compose:0.2.0")  // via JitPack
 ```
 
 | Gradle property | Default | Meaning |
 |---|---|---|
-| `accessaiUrl` | empty | AccessAI service URL. Empty = the SDK's offline `LocalRulesBackend` (keyword matching, unsigned tokens). |
+| `accessaiUrl` | `https://accessai-server-gemini.fly.dev` | AccessAI service URL. `-PaccessaiUrl=` (empty) = the SDK's offline `LocalRulesBackend` (keyword matching, unsigned tokens; start the bank with `ALLOW_DEV_TOKENS=true`). |
 | `mockBankUrl` | `http://10.0.2.2:8000` | Mock bank. `10.0.2.2` is your machine from the emulator. On a USB device run `adb reverse tcp:8000 tcp:8000` and pass `-PmockBankUrl=http://localhost:8000`. |
 | `localSdk` | unset | `true` builds against `../accessai-android-sdk` sources instead of JitPack. |
 
-Example: `./gradlew installDebug -PaccessaiUrl=https://your-accessai-host -PlocalSdk=true`. Debug builds allow plain HTTP,
+Example: `./gradlew installDebug -PmockBankUrl=http://192.168.1.20:8000 -PlocalSdk=true`. Debug builds allow plain HTTP,
 so a phone on the same Wi-Fi can use `-PmockBankUrl=http://<your-computer-ip>:8000` (start the bank with `--host 0.0.0.0`).
 
 ## Mock bank API
@@ -76,7 +66,7 @@ Amounts are integers in kobo. Errors are `{"error": {"code", "message"}}`.
 | `POST /v1/_reset` | Back to the seed data |
 
 **AccessAI transfers** (`channel: "accessai"`) are verified as the SDK's
-[API contract](https://github.com/Caculuz-cinks/accessai-android-sdk/blob/main/docs/API_CONTRACT.md#get-well-knownjwksjson)
+[API contract](https://github.com/Accessibility-AI/accessai-android-sdk/blob/main/docs/API_CONTRACT.md#get-well-knownjwksjson)
 requires: EdDSA signature against the JWKS, `iss`, expiry, `aid == "transfer_money"`, `ph` equal to the SHA-256 of
 `{"amount_minor": …, "recipient": <beneficiary_id>}` in canonical JSON, and a `jti` never seen before. The
 `Idempotency-Key` must be that `jti`. A retry with the same key returns the original result; a token is spent by any
@@ -91,7 +81,7 @@ Admin endpoints are disabled with `ADMIN_ENABLED=false`.
 
 ## How the app uses the SDK
 
-Following [docs/INTEGRATION.md](https://github.com/Caculuz-cinks/accessai-android-sdk/blob/main/docs/INTEGRATION.md),
+Following [docs/INTEGRATION.md](https://github.com/Accessibility-AI/accessai-android-sdk/blob/main/docs/INTEGRATION.md),
 with `accessai-compose:0.2.0` from JitPack:
 
 - `AccessPayApp` initialises AccessAI and registers `get_balance`, `navigate_to_transfer`, `get_transaction_history` and

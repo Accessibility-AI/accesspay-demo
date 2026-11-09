@@ -21,7 +21,7 @@ include(":app")
 
 // Build against SDK sources cloned next to this repo instead of the JitPack release:
 //   ./gradlew assembleDebug -PlocalSdk=true
-// Gradle substitutes com.github.Caculuz-cinks.accessai-android-sdk:* with the included build's modules.
+// Gradle substitutes com.github.Accessibility-AI.accessai-android-sdk:* with the included build's modules.
 if (providers.gradleProperty("localSdk").orNull == "true") {
     includeBuild("../accessai-android-sdk")
 }
