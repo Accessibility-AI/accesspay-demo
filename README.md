@@ -20,9 +20,18 @@ mock-bank/    Python FastAPI + SQLite: balance, transactions, beneficiaries, tra
 Seed data (matches the SDK tests and PRD examples): balance ₦84,250; beneficiaries David Adeyemi (…2391),
 David Okafor (…7710), Amaka Obi (…5521), Chinedu Okeke (…3304), Halima Bello (…8812).
 
+## Try it on a phone
+
+Download `accesspay-debug-apk` from the latest green CI run on `main` (**Actions → run → Artifacts**), unzip it and
+install `app-debug.apk`. The phone needs internet and a screen lock (transfers ask for it). Nothing else has to run:
+by default the app talks to the live AccessAI service and uses a **simulated bank inside the app** (same seed data and
+rules as `mock-bank/`, reset when the app restarts). It checks each confirmation token's action, recipient and amount
+hash, expiry and single-use nonce, but not its signature; `mock-bank/` verifies that against the service's JWKS. Each
+CI build is signed with a different debug key, so uninstall the previous build before installing a new one.
+
 ## Run it locally
 
-**1. Mock bank** (Python 3.11+):
+**1. Mock bank** (optional; Python 3.11+). Only needed to demo a separate bank backend that verifies token signatures:
 
 ```bash
 cd mock-bank && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
@@ -46,7 +55,7 @@ tokens). See `mock-bank/.env.example`.
 | Gradle property | Default | Meaning |
 |---|---|---|
 | `accessaiUrl` | `https://accessai-server-gemini.fly.dev` | AccessAI service URL. `-PaccessaiUrl=` (empty) = the SDK's offline `LocalRulesBackend` (keyword matching, unsigned tokens; start the bank with `ALLOW_DEV_TOKENS=true`). |
-| `mockBankUrl` | `http://10.0.2.2:8000` | Mock bank. `10.0.2.2` is your machine from the emulator. On a USB device run `adb reverse tcp:8000 tcp:8000` and pass `-PmockBankUrl=http://localhost:8000`. |
+| `mockBankUrl` | empty | Empty = the simulated bank inside the app. Otherwise the mock bank's URL: `http://10.0.2.2:8000` is your machine from the emulator; on a USB device run `adb reverse tcp:8000 tcp:8000` and pass `-PmockBankUrl=http://localhost:8000`. |
 | `localSdk` | unset | `true` builds against `../accessai-android-sdk` sources instead of JitPack. |
 
 Example: `./gradlew installDebug -PmockBankUrl=http://192.168.1.20:8000 -PlocalSdk=true`. Debug builds allow plain HTTP,
