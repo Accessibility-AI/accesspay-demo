@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 /** The app's view of the account. Screens observe it; AccessAI actions read and act through it. */
-class BankRepository(private val api: BankApi) {
+class BankRepository(private val api: Bank) {
     private val _balance = MutableStateFlow<Balance?>(null)
     val balance: StateFlow<Balance?> = _balance.asStateFlow()
 

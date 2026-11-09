@@ -6,12 +6,14 @@ import com.accessai.android.AccessAIConfig
 import com.accesspay.demo.ai.registerAccessPayActions
 import com.accesspay.demo.bank.BankApi
 import com.accesspay.demo.bank.BankRepository
+import com.accesspay.demo.bank.OnDeviceBank
 
 class AccessPayApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        bank = BankRepository(BankApi(BuildConfig.MOCK_BANK_URL))
+        // Blank = the simulated bank inside the app, so the APK runs on any phone with only AccessAI online.
+        bank = BankRepository(BuildConfig.MOCK_BANK_URL.ifBlank { null }?.let(::BankApi) ?: OnDeviceBank())
         AccessAI.init(
             this,
             // Blank = offline LocalRulesBackend for development; the mock bank must then allow dev tokens.

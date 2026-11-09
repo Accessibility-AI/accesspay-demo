@@ -17,16 +17,16 @@ import java.util.concurrent.TimeUnit
 class BankApi(
     baseUrl: String,
     private val client: OkHttpClient = defaultClient(),
-) {
+) : Bank {
     private val base = baseUrl.trimEnd('/')
 
-    suspend fun balance(): Balance = get("/v1/balance")
+    override suspend fun balance(): Balance = get("/v1/balance")
 
-    suspend fun transactions(limit: Int = 20): List<Transaction> = get<Items<Transaction>>("/v1/transactions?limit=$limit").items
+    override suspend fun transactions(limit: Int): List<Transaction> = get<Items<Transaction>>("/v1/transactions?limit=$limit").items
 
-    suspend fun beneficiaries(): List<Beneficiary> = get<Items<Beneficiary>>("/v1/beneficiaries").items
+    override suspend fun beneficiaries(): List<Beneficiary> = get<Items<Beneficiary>>("/v1/beneficiaries").items
 
-    suspend fun transfer(request: TransferRequest, idempotencyKey: String): TransferOutcome = withContext(Dispatchers.IO) {
+    override suspend fun transfer(request: TransferRequest, idempotencyKey: String): TransferOutcome = withContext(Dispatchers.IO) {
         val call = Request.Builder()
             .url("$base/v1/transfers")
             .header("Idempotency-Key", idempotencyKey)
