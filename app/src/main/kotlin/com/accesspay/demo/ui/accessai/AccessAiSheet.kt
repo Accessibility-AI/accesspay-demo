@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.BorderStroke
@@ -136,10 +137,17 @@ fun AccessAiSheetOverlay(
         transcript.lastOrNull { it.speaker == Speaker.ACCESSAI }?.text.orEmpty()
     }
 
-    // Track when a new response arrives so ANSWER / SUCCESS / FAILURE / NOT_UNDERSTOOD / OFFLINE show properly.
-    LaunchedEffect(dialogState, outcome, lastAiText) {
-        if (dialogState is DialogState.Interpreting || dialogState is DialogState.Executing) {
-            userDismissedAnswer = false
+    // Reset stale previous-turn outcomes whenever a new voice or typed request starts interpreting.
+    LaunchedEffect(dialogState) {
+        when (dialogState) {
+            is DialogState.Interpreting -> {
+                userDismissedAnswer = false
+                tracker.recordOutcome(null)
+            }
+            is DialogState.Executing -> {
+                userDismissedAnswer = false
+            }
+            else -> Unit
         }
     }
 
@@ -184,25 +192,43 @@ fun AccessAiSheetOverlay(
     }
 
     // Distinct sounds & haptics per 1h
+    var prevMicListening by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState, listeningState) {
+        val nowListening = uiState == SheetUiState.LISTENING && listeningState is ListeningState.Listening
+        if (nowListening && !prevMicListening) {
+            AccessAiAudioCues.micOpen()
+        }
+        prevMicListening = nowListening
+    }
+
     LaunchedEffect(uiState) {
         when (uiState) {
-            SheetUiState.LISTENING -> if (listeningState is ListeningState.Listening) AccessAiAudioCues.micOpen()
             SheetUiState.THINKING -> AccessAiAudioCues.thinkingTick()
             SheetUiState.ANSWER -> AccessAiAudioCues.answerChime()
             SheetUiState.CLARIFICATION -> AccessAiAudioCues.clarifyQuestion()
             SheetUiState.CONFIRMATION -> AccessAiAudioCues.confirmationPrompt()
             SheetUiState.SUCCESS -> {
                 AccessAiAudioCues.success()
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                val haptic = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    HapticFeedbackConstants.CONFIRM
+                } else {
+                    HapticFeedbackConstants.VIRTUAL_KEY
+                }
+                view.performHapticFeedback(haptic)
             }
             SheetUiState.FAILURE -> {
                 AccessAiAudioCues.failure()
-                view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                val haptic = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    HapticFeedbackConstants.REJECT
+                } else {
+                    HapticFeedbackConstants.LONG_PRESS
+                }
+                view.performHapticFeedback(haptic)
             }
             SheetUiState.OFFLINE -> AccessAiAudioCues.offline()
             SheetUiState.NOT_UNDERSTOOD -> AccessAiAudioCues.notUnderstood()
             SheetUiState.STOPPED -> AccessAiAudioCues.micClose()
-            SheetUiState.CONSENT, SheetUiState.MIC_DENIED -> Unit
+            SheetUiState.LISTENING, SheetUiState.CONSENT, SheetUiState.MIC_DENIED -> Unit
         }
     }
 
@@ -471,7 +497,11 @@ fun AccessAiSheetOverlay(
                             userPausedMic = false
                             tracker.clear()
                             userDismissedAnswer = true
-                            if (hasMicPermission && isVoiceAvailable) controller.startListening()
+                            if (hasMicPermission && isVoiceAvailable) {
+                                controller.startListening()
+                            } else {
+                                typeInsteadOpen = true
+                            }
                         },
                         onUseWithoutVoice = {
                             tracker.clear()
@@ -1079,8 +1109,11 @@ private fun ConfirmationSheetBody(
     onCancel: () -> Unit,
 ) {
     val t = LocalAccessAi.current
+    val totalSeconds = remember(state.expiresAt) {
+        secondsRemaining(state.expiresAt).coerceAtLeast(1)
+    }
     var secondsLeft by remember(state.expiresAt) {
-        mutableIntStateOf(secondsRemaining(state.expiresAt).coerceIn(1, 30))
+        mutableIntStateOf(totalSeconds)
     }
     var milestoneMessage by remember(state.expiresAt) { mutableStateOf("") }
 
@@ -1088,7 +1121,7 @@ private fun ConfirmationSheetBody(
         while (true) {
             val left = secondsRemaining(state.expiresAt)
             secondsLeft = left
-            if (left == 20 || left == 10 || left == 5) {
+            if (left == 30 || left == 20 || left == 10 || left == 5) {
                 milestoneMessage = "Cancels in $left seconds."
             }
             if (left <= 0) {
@@ -1132,7 +1165,7 @@ private fun ConfirmationSheetBody(
                 fromAccount = fromAccount,
                 feeDisplay = feeDisplay,
                 secondsLeft = secondsLeft,
-                totalSeconds = 30,
+                totalSeconds = totalSeconds,
             )
 
             if (milestoneMessage.isNotBlank()) {

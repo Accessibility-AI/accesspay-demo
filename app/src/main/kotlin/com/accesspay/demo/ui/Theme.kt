@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 // AccessPay host & high-contrast colours matching the AccessAI UI spec (1b / 1c / 1f / 1i).
 private val Light = lightColorScheme(
@@ -38,8 +39,11 @@ private val Dark = darkColorScheme(
 
 /** Status colours; always paired with a word, never used alone. */
 object StatusColors {
-    @Composable fun positive(): Color = if (isSystemInDarkTheme()) Color(0xFF7CF08C) else Color(0xFF146B34)
-    @Composable fun warning(): Color = if (isSystemInDarkTheme()) Color(0xFFFFC46B) else Color(0xFF8A4B00)
+    @Composable fun positive(): Color =
+        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color(0xFF7CF08C) else Color(0xFF146B34)
+
+    @Composable fun warning(): Color =
+        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color(0xFFFFC46B) else Color(0xFF8A4B00)
 }
 
 @Composable

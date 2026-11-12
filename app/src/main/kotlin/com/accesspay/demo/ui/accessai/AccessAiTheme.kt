@@ -179,10 +179,10 @@ fun resolveAccessAiTheme(
 
 @Composable
 fun AccessAiPanel(
+    modifier: Modifier = Modifier,
     theme: AccessAiTheme = AccessPayAiTheme,
     highContrast: Boolean = isSystemInDarkTheme() || isSystemHighContrast(),
     reducedMotion: Boolean = !animationsEnabled(),
-    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val resolved = remember(theme, highContrast, reducedMotion) {

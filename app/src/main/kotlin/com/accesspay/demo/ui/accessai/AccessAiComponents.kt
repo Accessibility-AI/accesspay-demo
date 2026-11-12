@@ -303,13 +303,14 @@ fun ConfirmationCard(
     fromAccount: String,
     feeDisplay: String,
     secondsLeft: Int,
-    totalSeconds: Int = 30,
     modifier: Modifier = Modifier,
+    totalSeconds: Int = 30,
 ) {
     val t = LocalAccessAi.current
     val spokenLast4 = accountLast4.toList().joinToString(" ")
+    val accountClause = if (spokenLast4.isNotBlank()) ", account ending $spokenLast4" else ""
     val summaryContentDescription =
-        "Send $spokenAmount to $recipientName, account ending $spokenLast4. From $fromAccount. Fee $feeDisplay."
+        "Send $spokenAmount to $recipientName$accountClause. From $fromAccount. Fee $feeDisplay."
     val progress = if (totalSeconds > 0) (secondsLeft.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f) else 0f
     val expiring = secondsLeft <= 5
 
