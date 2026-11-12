@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="start_accessai"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_btn_speak_now"
+        android:shortcutShortLabel="@string/shortcut_start_accessai_short"
+        android:shortcutLongLabel="@string/shortcut_start_accessai_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="accesspay://start-accessai"
+            android:targetPackage="com.accesspay.demo"
+            android:targetClass="com.accesspay.demo.ui.MainActivity" />
+        <capability-binding android:key="actions.intent.OPEN_APP_FEATURE">
+            <parameter-binding
+                android:key="feature"
+                android:value="AccessAI" />
+        </capability-binding>
+    </shortcut>
+
+    <capability android:name="actions.intent.OPEN_APP_FEATURE">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.accesspay.demo"
+            android:targetClass="com.accesspay.demo.ui.MainActivity">
+            <url-template android:value="accesspay://start-accessai" />
+            <parameter
+                android:name="feature"
+                android:key="feature" />
+        </intent>
+    </capability>
+</shortcuts>

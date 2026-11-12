@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AccessPay</string>
+    <string name="shortcut_start_accessai_short">Start AccessAI</string>
+    <string name="shortcut_start_accessai_long">Start AccessAI voice assistant</string>
 </resources>

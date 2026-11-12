@@ -7,17 +7,17 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// AccessPay green (AccessAI UI spec 1f/1i). Text colours meet WCAG AA on their backgrounds.
+// AccessPay host & high-contrast colours matching the AccessAI UI spec (1b / 1c / 1f / 1i).
 private val Light = lightColorScheme(
     primary = Color(0xFF1B6B2A),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFEEF3EF),
     onPrimaryContainer = Color(0xFF0B1F14),
     surface = Color.White,
-    onSurface = Color(0xFF0B1F14),
+    onSurface = Color(0xFF10201A),
     onSurfaceVariant = Color(0xFF3D4A42),
-    background = Color.White,
-    onBackground = Color(0xFF0B1F14),
+    background = Color(0xFFF2F4F3),
+    onBackground = Color(0xFF10201A),
     outline = Color(0xFF6B7A71),
     error = Color(0xFFB3261E),
 )
