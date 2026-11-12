@@ -60,6 +60,8 @@ fun HomeScreen(
     transactions: List<Transaction>,
     consented: Boolean,
     highContrast: Boolean,
+    wakeListeningActive: Boolean,
+    onToggleWakeListening: () -> Unit,
     onToggleHighContrast: () -> Unit,
     entryFocusRequester: FocusRequester,
     showEntrySheet: Boolean = true,
@@ -236,6 +238,54 @@ fun HomeScreen(
                         onClick = { onOpen(Route.HISTORY) },
                         modifier = Modifier.weight(1f),
                     )
+                }
+
+                Surface(
+                    color = if (wakeListeningActive) Color(0xFFEAF3EC) else Color.White,
+                    contentColor = hostInk,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(
+                        width = if (wakeListeningActive) 2.dp else 1.dp,
+                        color = if (wakeListeningActive) hostCardBg else Color(0xFFD5DDD8),
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onToggleWakeListening)
+                        .semantics(mergeDescendants = true) {
+                            role = Role.Button
+                            contentDescription = if (wakeListeningActive) {
+                                "Voice wake active. Say Hello Access AI or Start Access AI to launch. Double-tap to pause."
+                            } else {
+                                "Voice wake off. Double-tap to enable Hello Access AI."
+                            }
+                        },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (wakeListeningActive) {
+                                "Say “Hello Access AI” or “Start Access AI”"
+                            } else {
+                                "Voice wake off · Enable “Hello Access AI”"
+                            },
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = hostInk,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = if (wakeListeningActive) "On" else "Off",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (wakeListeningActive) hostCardBg else Color(0xFF3D4A42),
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                 }
 
                 quickInfo?.let { msg ->

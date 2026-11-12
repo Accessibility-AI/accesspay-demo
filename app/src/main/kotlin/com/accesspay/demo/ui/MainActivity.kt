@@ -1,6 +1,7 @@
 package com.accesspay.demo.ui
 
 import android.Manifest
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.semantics
 import androidx.fragment.app.FragmentActivity
@@ -37,15 +40,21 @@ import com.accessai.compose.AccessAIScreen
 import com.accessai.core.announce
 import com.accesspay.demo.AccessPayApp
 import com.accesspay.demo.Route
+import com.accesspay.demo.ai.WakePhraseController
 import com.accesspay.demo.ui.accessai.AccessAiSheetOverlay
 import com.accesspay.demo.ui.accessai.isSystemHighContrast
 import kotlinx.coroutines.delay
 
 // FragmentActivity (not ComponentActivity): AccessAI shows the biometric / screen-lock prompt before transfers.
 class MainActivity : FragmentActivity() {
+    private var launchAccessAiSignal by mutableIntStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (isStartAccessAiIntent(intent)) {
+            launchAccessAiSignal += 1
+        }
         setContent {
             val systemDarkOrHc = isSystemInDarkTheme() || isSystemHighContrast()
             var highContrastOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
@@ -60,6 +69,7 @@ class MainActivity : FragmentActivity() {
                 ) {
                     AccessPayRoot(
                         highContrast = effectiveDark,
+                        launchAccessAiSignal = launchAccessAiSignal,
                         onToggleHighContrast = {
                             highContrastOverride = !effectiveDark
                         },
@@ -68,13 +78,28 @@ class MainActivity : FragmentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (isStartAccessAiIntent(intent)) {
+            launchAccessAiSignal += 1
+        }
+    }
+
+    private fun isStartAccessAiIntent(intent: Intent?): Boolean {
+        val data = intent?.data ?: return false
+        return data.scheme == "accesspay" && data.host == "start-accessai"
+    }
 }
 
 @Composable
 private fun AccessPayRoot(
     highContrast: Boolean,
+    launchAccessAiSignal: Int,
     onToggleHighContrast: () -> Unit,
 ) {
+    val context = LocalContext.current
     val bank = AccessPayApp.bank
     val navigator = AccessPayApp.navigator
     val tracker = AccessPayApp.aiTracker
@@ -90,14 +115,21 @@ private fun AccessPayRoot(
     var showConsent by rememberSaveable { mutableStateOf(false) }
     var showStopped by rememberSaveable { mutableStateOf(false) }
     var closedExplicitly by rememberSaveable { mutableStateOf(false) }
+    var wakeWordEnabled by rememberSaveable { mutableStateOf(true) }
+    var isForeground by remember { mutableStateOf(true) }
     var hasMicPermission by remember { mutableStateOf(controller.hasMicrophonePermission) }
     val entryFocusRequester = remember { FocusRequester() }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner, controller) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                hasMicPermission = controller.hasMicrophonePermission
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    isForeground = true
+                    hasMicPermission = controller.hasMicrophonePermission
+                }
+                Lifecycle.Event.ON_PAUSE -> isForeground = false
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -140,6 +172,42 @@ private fun AccessPayRoot(
     AccessAIScreen(descriptorFor(route, balance, transactions, beneficiaries))
 
     val sheetVisible = showConsent || enabled || showStopped
+    val wakeListeningActive = isForeground && !sheetVisible && consented && hasMicPermission && wakeWordEnabled && controller.isVoiceAvailable
+
+    val wakePhraseController = remember(context) {
+        WakePhraseController(context) {
+            if (!enabled) turnOn()
+        }
+    }
+
+    DisposableEffect(wakePhraseController) {
+        onDispose { wakePhraseController.stop() }
+    }
+
+    LaunchedEffect(wakeListeningActive) {
+        if (wakeListeningActive) {
+            // Brief settle delay after closing AccessAI mode so Stop doesn't immediately re-trigger.
+            delay(500)
+            wakePhraseController.start()
+        } else {
+            wakePhraseController.stop()
+        }
+    }
+
+    var handledLaunchSignal by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(launchAccessAiSignal) {
+        if (launchAccessAiSignal > handledLaunchSignal) {
+            handledLaunchSignal = launchAccessAiSignal
+            if (consented) {
+                turnOn()
+                if (!controller.hasMicrophonePermission) {
+                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            } else {
+                showConsent = true
+            }
+        }
+    }
 
     BackHandler(enabled = sheetVisible || route != Route.HOME) {
         when {
@@ -182,6 +250,17 @@ private fun AccessPayRoot(
                     transactions = transactions,
                     consented = consented,
                     highContrast = highContrast,
+                    wakeListeningActive = wakeListeningActive,
+                    onToggleWakeListening = {
+                        if (!consented) {
+                            showConsent = true
+                        } else if (!hasMicPermission) {
+                            wakeWordEnabled = true
+                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            wakeWordEnabled = !wakeWordEnabled
+                        }
+                    },
                     onToggleHighContrast = onToggleHighContrast,
                     entryFocusRequester = entryFocusRequester,
                     showEntrySheet = !sheetVisible,
