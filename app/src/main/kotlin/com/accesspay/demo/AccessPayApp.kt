@@ -17,7 +17,12 @@ class AccessPayApp : Application() {
         AccessAI.init(
             this,
             // Blank = offline LocalRulesBackend for development; the mock bank must then allow dev tokens.
-            AccessAIConfig(appId = "accesspay-demo", serverUrl = BuildConfig.ACCESSAI_URL.ifBlank { null }),
+            AccessAIConfig(
+                appId = "accesspay-demo",
+                serverUrl = BuildConfig.ACCESSAI_URL.ifBlank { null },
+                // Test builds show which speech attempt ran and any error code, for phones we can't attach a debugger to.
+                showSpeechDiagnostics = BuildConfig.DEBUG,
+            ),
         )
         registerAccessPayActions(bank, navigator)
     }

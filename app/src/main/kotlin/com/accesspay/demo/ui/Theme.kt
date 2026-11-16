@@ -6,6 +6,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.accessai.compose.AccessAIColors
+import com.accessai.compose.AccessAITheme
 
 // AccessPay green (AccessAI UI spec 1f/1i). Text colours meet WCAG AA on their backgrounds.
 private val Light = lightColorScheme(
@@ -40,6 +43,25 @@ private val Dark = darkColorScheme(
 object StatusColors {
     @Composable fun positive(): Color = if (isSystemInDarkTheme()) Color(0xFF7CF08C) else Color(0xFF146B34)
     @Composable fun warning(): Color = if (isSystemInDarkTheme()) Color(0xFFFFC46B) else Color(0xFF8A4B00)
+}
+
+/**
+ * AccessAI's screens in AccessPay's brand (UI spec 1f): five colour roles and a 28dp corner. High contrast and
+ * reduced motion follow the system. Wrap only AccessAI components, since it also sets MaterialTheme.
+ */
+@Composable
+fun AccessPayAI(content: @Composable () -> Unit) {
+    AccessAITheme(
+        colors = AccessAIColors(
+            primary = Color(0xFF1B6B2A),
+            surface = Color.White,
+            onSurface = Color(0xFF0B1F14),
+            positive = Color(0xFF146B34),
+            critical = Color(0xFFB3261E),
+        ),
+        cornerRadius = 28.dp,
+        content = content,
+    )
 }
 
 @Composable
