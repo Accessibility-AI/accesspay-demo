@@ -9,6 +9,11 @@ import com.accessai.core.actions.Sensitivity
 import com.accessai.core.actions.Validation
 import com.accessai.core.actions.action
 import com.accessai.core.announce
+import com.accessai.core.engine.ConfirmationDetails
+import com.accessai.core.format.Naira
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import com.accesspay.demo.Navigator
 import com.accesspay.demo.Route
 import com.accesspay.demo.bank.BankException
@@ -27,7 +32,12 @@ fun registerAccessPayActions(bank: BankRepository, navigator: Navigator) {
         handler {
             try {
                 val kobo = bank.currentBalance()
-                ActionResult.Success(announce { text("Your balance is "); naira(kobo); text(".") })
+                ActionResult.Success(
+                    announce { text("Your balance is "); naira(kobo); text(".") },
+                    title = "Your balance",
+                    value = Naira.display(kobo),
+                    detail = "Main account, as of ${clockTime()}.",
+                )
             } catch (e: BankException) {
                 ActionResult.Failure(BANK_UNREACHABLE)
             }
@@ -94,6 +104,18 @@ fun registerAccessPayActions(bank: BankRepository, navigator: Navigator) {
             else Validation.Valid
         }
         summary { p -> announce { text("send "); naira(p.number("amount_minor")); text(" to ${p.spokenLabel("recipient")}, from your Main account. The fee is zero naira") } }
+        // The confirmation card: built from the same resolved parameters the token is bound to.
+        details { p ->
+            val b = bank.beneficiary(p.text("recipient"))
+            ConfirmationDetails(
+                title = "Confirm payment",
+                verb = "Send",
+                amount = Naira.display(p.number("amount_minor")),
+                recipient = b?.name ?: p.label("recipient"),
+                recipientDetail = b?.let { "Account ending ${it.accountLast4}" },
+                note = "From Main account \u00B7 Fee ${Naira.display(0)}",
+            )
+        }
         handler { ctx ->
             val beneficiaryId = ctx.params.text("recipient")
             val kobo = ctx.params.number("amount_minor")
@@ -101,15 +123,28 @@ fun registerAccessPayActions(bank: BankRepository, navigator: Navigator) {
             val token = ctx.confirmationToken ?: return@handler ActionResult.Failure(Announcement.of("This payment wasn't confirmed. Nothing was sent."))
             val name = bank.beneficiary(beneficiaryId)?.name ?: "your beneficiary"
             when (val outcome = bank.transferConfirmed(beneficiaryId, kobo, token, ctx.idempotencyKey)) {
-                is TransferOutcome.Completed -> ActionResult.Success(announce {
-                    text("Payment sent. "); naira(kobo); text(" to $name. Reference ")
-                    pair(spokenReference(outcome.receipt.reference), outcome.receipt.reference)
-                    text(". Your new balance is "); naira(outcome.receipt.balanceMinor); text(".")
-                })
-                is TransferOutcome.Rejected -> ActionResult.Failure(rejected(outcome.code))
-                is TransferOutcome.Unknown -> ActionResult.Failure(Announcement.of(
-                    "Your bank didn't answer, so I can't tell whether the payment went through. Check your transaction history before trying again.",
-                ))
+                is TransferOutcome.Completed -> ActionResult.Success(
+                    announce {
+                        text("Payment sent. "); naira(kobo); text(" to $name. Reference ")
+                        pair(spokenReference(outcome.receipt.reference), outcome.receipt.reference)
+                        text(". Your new balance is "); naira(outcome.receipt.balanceMinor); text(".")
+                    },
+                    title = "Payment sent",
+                    value = "Sent ${Naira.display(kobo)} to $name.",
+                    detail = "Reference ${outcome.receipt.reference} \u00B7 ${clockTime()}. New balance ${Naira.display(outcome.receipt.balanceMinor)}.",
+                )
+                is TransferOutcome.Rejected -> ActionResult.Failure(
+                    rejected(outcome.code),
+                    title = "Payment not sent",
+                    detail = bank.balance.value?.let { "No money left your account. Your balance is still ${Naira.display(it.balanceMinor)}." }
+                        ?: "No money left your account.",
+                )
+                is TransferOutcome.Unknown -> ActionResult.Failure(
+                    Announcement.of(
+                        "Your bank didn't answer, so I can't tell whether the payment went through. Check your transaction history before trying again.",
+                    ),
+                    title = "Result unknown",
+                )
             }
         }
     })
@@ -124,6 +159,9 @@ private fun rejected(code: String): Announcement = Announcement.of(
         else -> "Payment not sent. Your bank couldn't complete it. No money left your account."
     },
 )
+
+/** "2:14 pm". */
+private fun clockTime(): String = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)).lowercase()
 
 /** "AP-4471-2391" → "A P, 4 4 7 1, 2 3 9 1". */
 internal fun spokenReference(reference: String): String =
