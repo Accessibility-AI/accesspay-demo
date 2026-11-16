@@ -55,8 +55,9 @@ private fun AccessPayRoot() {
     val beneficiaries by bank.beneficiaries.collectAsStateWithLifecycle()
     var showConsent by rememberSaveable { mutableStateOf(false) }
 
-    // Reload on start and whenever AccessAI mode closes, since it may have moved money.
-    LaunchedEffect(enabled) { if (!enabled) bank.refresh() }
+    // Load on start (the app shows behind AccessAI's panel, so also when it opens with AccessAI on), and reload
+    // whenever AccessAI mode closes, since it may have moved money.
+    LaunchedEffect(enabled) { if (!enabled || balance == null) bank.refresh() }
 
     // Published whether or not AccessAI mode is showing, so "where am I" and the interpreter know the screen.
     AccessAIScreen(descriptorFor(route, balance, transactions, beneficiaries))
