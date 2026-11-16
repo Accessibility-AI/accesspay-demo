@@ -51,7 +51,10 @@ fun registerAccessPayActions(bank: BankRepository, navigator: Navigator) {
         examples("I want to send money", "open transfers", "go to transfer")
         handler {
             navigator.open(Route.TRANSFER)
-            ActionResult.Success(Announcement.of("Transfer money screen. Tell me who to send to and how much."))
+            ActionResult.Success(
+                Announcement.of("Transfer money screen. Tell me who to send to and how much."),
+                title = "Transfer money",
+            )
         }
     })
 
